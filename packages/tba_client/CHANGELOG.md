@@ -1,0 +1,123 @@
+# Changelog
+
+## 0.9.0
+
+- `getTeamAwards(int teamNumber, {int? year})` reads
+  `/team/frc{n}/awards`, or `/team/frc{n}/awards/{year}` when a season is
+  given. It answers an empty list both for a team that has won nothing and
+  for a team key TBA does not know, matching the other list endpoints, so a
+  rookie does not read as an error.
+- `TbaAward` carries `eventKey` and `year`. An unscoped team awards list
+  spans a team's whole history, so an award without them cannot be placed,
+  and TBA sends both on the event-scoped payload too. `isWinOrFinalist`
+  covers award types 1 and 2, the winner and finalist slots at every level of
+  play, which is what separates a result from a judged or individual award.
+  Additive: both fields default rather than being required, and no existing
+  field moved.
+
+## 0.8.0
+
+- `TbaTeamRanking.extraStats` and `TbaEventRankings.extraStatsNames` /
+  `extraStatsFor` model the `extra_stats` / `extra_stats_info` pair from
+  `/event/{key}/rankings`, the same positional pairing `sortOrders` /
+  `sortOrderNames` already gets. On `2025cabe` this is Total Ranking Points,
+  previously present in the payload and unreachable through the client.
+- Tests now assert against captured live response bodies in `test/fixtures/`,
+  one for every endpoint the client exposes, including `fetchTeamAvatar`,
+  whose bytes come from `details.base64Image` two levels inside a mixed media
+  list. No behavior change and no version bump: the audit that prompted this
+  found the models already correct against the live API, so this locks that in
+  rather than fixing anything.
+
+  Prompted by `statbotics_client` v0.4.0, where models that had never been
+  run against a live body shipped four releases broken while their
+  hand-written tests passed. The tests there agreed with the models rather
+  than with the API. This client was written against a reachable API and
+  holds up, but nothing was pinning that.
+
+  One case stays hand-written: an unplayed match, where TBA sends
+  `score: -1` and an empty `winning_alliance`. No live event had one on the
+  capture date.
+
+## 0.7.0
+
+- `TbaTeamRanking.teamNumber` parses the numeric team number out of `teamKey`,
+  matching the getter `TbaTeam` already had. A key that is not in `frcNNNN`
+  form reads as 0 rather than throwing.
+- README: `getEventPredictions` is documented, and the empty-key example points
+  at `InMemoryTbaConfig('')` instead of a `--dart-define` flag, which is
+  `CompileTimeTbaConfig`'s path.
+
+## 0.6.0
+
+- `getEventPredictions` reads `/event/{key}/predictions`, TBA's own predicted
+  outcome per match, merged across the qualification and playoff maps and keyed
+  by match key. `TbaMatchPrediction` carries the two predicted scores, the
+  alliance TBA expects to win, and its confidence in that call. The payload's
+  per-game component means and variances are deliberately not modelled: they are
+  renamed every season. An event with nothing to predict answers an empty map
+  rather than null or an error, which is the normal state early at an event and
+  the permanent state at an offseason one.
+
+## 0.5.1
+
+- No API change. Adds coverage for the empty-key guard and for award and
+  alliance payloads that arrive as something other than a list, so the tagged
+  version and its tests match.
+
+## 0.5.0
+
+- `getEventMatchesDetailed`, reading `GET /event/{key}/matches`. The `simple`
+  payload `getEventMatches` reads carries no `videos` and no `score_breakdown`,
+  so `TbaScheduleMatch` always parsed those as empty no matter the event. Kept as
+  a separate call rather than switching `getEventMatches` over: a score breakdown
+  is large, and the schedule is refetched on every event change and every
+  pull-to-refresh.
+
+## 0.4.0
+
+- `TbaScheduleMatch` now carries the rest of the match payload it was dropping:
+  `redScore`/`blueScore`, `winningAlliance`, `scheduledTime`/`predictedTime`/
+  `actualTime`, `videos`, and the game-specific `scoreBreakdown`. An unplayed
+  match reports null scores rather than TBA's `-1`, and `isPlayed`/`isTie`
+  separate "no result yet" from a genuine tie, which a bare
+  `winning_alliance` cannot (both are an empty string).
+- Add `getEventRankings` and `TbaEventRankings`/`TbaTeamRanking` for
+  `/event/{key}/rankings`. Sort-order values are positional and game specific,
+  so `sortOrdersFor` pairs them with the payload's own `sort_order_info` names
+  rather than hardcoding a season's columns.
+- Add `getEventAlliances` and `TbaEventAlliances`/`TbaAlliance` for
+  `/event/{key}/alliances`. Pick order is preserved and never sorted.
+- Add `getEventAwards` and `TbaEventAwards`/`TbaAward` for
+  `/event/{key}/awards`, distinguishing team awards from individual ones.
+- `TbaMatchVideo.listFromJson` is shared by `TbaMatch` and
+  `TbaScheduleMatch` so the two cannot drift.
+
+Additive: no existing field or method changed shape.
+
+## 0.3.0
+
+- **Breaking:** `TbaEventCoprs` now parses the COPRS payload the way the
+  endpoint actually sends it. `/event/{key}/coprs` is **stat major** (stat name
+  outer, team key inner); 0.2.0 read the outer keys as team keys, so every
+  lookup missed. `stats` is now stat name -> team key -> value, `operator []`
+  takes a stat name, and `statNames` lists what the event reports. Use the new
+  `forTeam(teamKey)` for the per-team view 0.2.0 claimed to provide.
+- Add `getEventOprs` and `TbaEventOprs` for `/event/{key}/oprs`: plain OPR,
+  DPR and CCWM per team. These are **not** in the COPRS payload, so an OPR
+  column needs this call.
+
+## 0.2.0
+
+- Add `getEventCoprs` method to fetch component OPR (COPRS) breakdown for an
+  event, The COPRS response varies by game year,
+  so `TbaEventCoprs` exposes an open `Map<String, Map<String, num>>` keyed by
+  team key and stat name (OPR, DPR, Foul Points, etc.). Superseded by 0.3.0:
+  the shape was wrong.
+
+## 0.1.0
+
+- Initial release: `TbaClient` (`getStatus`, `getTeam`, `getEventTeams`,
+  `fetchTeamAvatar`, `getEvent`, `getEventsForYear`, `getEventMatches`,
+  `getMatch`) with typed models and pluggable API key resolution through
+  `TbaConfig` (`CompileTimeTbaConfig` built in).

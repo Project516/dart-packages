@@ -1,7 +1,7 @@
 name: tba_client
 description: A typed Dart client for The Blue Alliance API v3, with pluggable API key resolution. Pure Dart, no Flutter dependency.
 version: 0.9.0
-repository: https://github.com/Project516/dart-packages/tree/main/packages/tba_client
+repository: https://github.com/Project516/dart-packages/tree/master/packages/tba_client
 
 topics:
   - frc

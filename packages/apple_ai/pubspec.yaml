@@ -1,7 +1,7 @@
 name: apple_ai
 description: "Apple's on-device foundation model (Apple Intelligence) as a Flutter text generator."
 version: 0.1.1
-repository: https://github.com/Project516/dart-packages/tree/main/packages/apple_ai
+repository: https://github.com/Project516/dart-packages/tree/master/packages/apple_ai
 publish_to: 'none'
 
 environment:

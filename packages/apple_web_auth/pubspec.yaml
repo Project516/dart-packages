@@ -1,7 +1,7 @@
 name: apple_web_auth
 description: "ASWebAuthenticationSession as a Flutter OAuth redirect listener."
 version: 0.0.2
-repository: https://github.com/Project516/dart-packages/tree/main/packages/apple_web_auth
+repository: https://github.com/Project516/dart-packages/tree/master/packages/apple_web_auth
 publish_to: 'none'
 
 environment:

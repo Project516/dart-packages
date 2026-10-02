@@ -1,7 +1,7 @@
 name: liquid_glass
 description: "Apple Liquid Glass (iOS 26, macOS 26) as a Flutter platform view."
 version: 0.7.0
-repository: https://github.com/Project516/dart-packages/tree/main/packages/liquid_glass
+repository: https://github.com/Project516/dart-packages/tree/master/packages/liquid_glass
 publish_to: 'none'
 
 environment:

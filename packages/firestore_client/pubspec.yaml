@@ -4,7 +4,7 @@ description: >-
   APIs, for platforms FlutterFire does not cover (notably Linux desktop) and
   for plain Dart programs.
 version: 0.6.0
-repository: https://github.com/Project516/dart-packages/tree/main/packages/firestore_client
+repository: https://github.com/Project516/dart-packages/tree/master/packages/firestore_client
 
 topics:
   - firebase

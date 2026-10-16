@@ -773,3 +773,59 @@ class TbaMatchPrediction {
   /// TBA's confidence in [winningAlliance], 0 to 1.
   final double probability;
 }
+
+/// Everything `/event/{key}/predictions` carries that the client models: match
+/// predictions keyed by match key, and each team's predicted final
+/// qualification rank keyed by team key.
+class TbaEventPredictions {
+  const TbaEventPredictions({required this.matches, required this.ranks});
+
+  const TbaEventPredictions.empty()
+      : matches = const <String, TbaMatchPrediction>{},
+        ranks = const <String, int>{};
+
+  factory TbaEventPredictions.fromJson(Map<String, dynamic> j) {
+    final matches = <String, TbaMatchPrediction>{};
+    final byLevel = j['match_predictions'];
+    if (byLevel is Map) {
+      for (final level in byLevel.values) {
+        if (level is! Map) continue;
+        for (final entry in level.entries) {
+          final key = entry.key;
+          final value = entry.value;
+          if (key is! String || key.isEmpty || value is! Map) continue;
+          matches[key] = TbaMatchPrediction.fromJson(
+            key,
+            Map<String, dynamic>.from(value),
+          );
+        }
+      }
+    }
+
+    // Rows are `[teamKey, [avgRank, minRank, medianRank, maxRank, ...]]`.
+    final ranks = <String, int>{};
+    final rows = j['ranking_predictions'];
+    if (rows is List) {
+      for (final row in rows) {
+        if (row is! List || row.length < 2) continue;
+        final teamKey = row[0];
+        final stats = row[1];
+        if (teamKey is! String || stats is! List || stats.isEmpty) continue;
+        final rank = stats[0];
+        if (rank is num) ranks[teamKey] = rank.round();
+      }
+    }
+
+    return TbaEventPredictions(
+      matches: Map<String, TbaMatchPrediction>.unmodifiable(matches),
+      ranks: Map<String, int>.unmodifiable(ranks),
+    );
+  }
+
+  final Map<String, TbaMatchPrediction> matches;
+
+  /// Average simulated final qualification rank by team key (`frc3847`).
+  /// Empty when TBA has not simulated the event, which includes every
+  /// offseason event.
+  final Map<String, int> ranks;
+}

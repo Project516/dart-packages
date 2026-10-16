@@ -1532,8 +1532,14 @@ void main() {
           },
         },
         'ranking_predictions': <Object>[
-          <Object>['frc118', <num>[1, 1, 1, 2, 50.0, 48, 52]],
-          <Object>['frc624', <num>[3, 2, 3, 5, 42.0, 40, 44]],
+          <Object>[
+            'frc118',
+            <num>[1, 1, 1, 2, 50.0, 48, 52]
+          ],
+          <Object>[
+            'frc624',
+            <num>[3, 2, 3, 5, 42.0, 40, 44]
+          ],
           <Object>['frc231', 'not a list'],
           'not a row',
         ],

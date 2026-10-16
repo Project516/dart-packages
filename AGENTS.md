@@ -13,7 +13,7 @@ This repo holds small Dart and Flutter packages that anyone can use.
 
 A release touches one package only.
 
-1. In one PR, bump that package's `pubspec.yaml` version and its `CHANGELOG.md`.
+1. In one PR, bump that package's `pubspec.yaml` version and its `CHANGELOG.md`, and update every doc that names the version or the changed API: the root `README.md` table and `ref:` example, and the package `README.md`.
 2. After the merge, tag the merge commit `<name>-vX.Y.Z`.
 3. Never use a repo-wide tag like `vX.Y.Z`. Anything keyed off tags filters on `<name>-v*`.
 

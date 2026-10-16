@@ -26,7 +26,7 @@ final client = TbaClient(config: CompileTimeTbaConfig());
 
 ## API reference
 
-`TbaClient` targets `/api/v3` on `www.thebluealliance.com`. List endpoints return an empty list on 404; single-object endpoints return `null` on 404. Some event sub-resources (`getEventRankings`, `getEventAlliances`, `getEventAwards`, `getEventCoprs`, `getEventOprs`) also return `null` for a normal pre-event state (no rankings yet, no alliance selection, no awards ceremony), so a null is not an error. `getTeamAwards` returns an empty list for a team that has won nothing and for a team key TBA does not know, neither of which is an error. `getEventPredictions` is the exception to that pattern: it returns an empty map on 404 and on the `{}` TBA answers before it has enough data, which is the normal state early at an event and the permanent state at an offseason one. Anything else outside 2xx throws `TbaApiException`. `getStatus` treats 404 as a hard error so you can tell a misconfigured base URL / bad key apart from a normal "not found".
+`TbaClient` targets `/api/v3` on `www.thebluealliance.com`. List endpoints return an empty list on 404; single-object endpoints return `null` on 404. Some event sub-resources (`getEventRankings`, `getEventAlliances`, `getEventAwards`, `getEventCoprs`, `getEventOprs`) also return `null` for a normal pre-event state (no rankings yet, no alliance selection, no awards ceremony), so a null is not an error. `getTeamAwards` returns an empty list for a team that has won nothing and for a team key TBA does not know, neither of which is an error. `getEventPredictions` and `getEventPredictionsDetailed` are the exception to that pattern: they return empty results on 404 and on the `{}` TBA answers before it has enough data, which is the normal state early at an event and the permanent state at an offseason one. Anything else outside 2xx throws `TbaApiException`. `getStatus` treats 404 as a hard error so you can tell a misconfigured base URL / bad key apart from a normal "not found".
 
 | Method | Endpoint | Returns |
 | --- | --- | --- |
@@ -44,6 +44,7 @@ final client = TbaClient(config: CompileTimeTbaConfig());
 | `getEventAlliances(String eventKey)` | `GET /event/{key}/alliances` | `TbaEventAlliances?` |
 | `getEventAwards(String eventKey)` | `GET /event/{key}/awards` | `TbaEventAwards?` |
 | `getEventPredictions(String eventKey)` | `GET /event/{key}/predictions` | `Map<String, TbaMatchPrediction>` keyed by match key (empty for no data) |
+| `getEventPredictionsDetailed(String eventKey)` | `GET /event/{key}/predictions` | `TbaEventPredictions`: the same match predictions plus `ranks`, each team's average predicted final rank keyed by team key |
 | `getTeamAwards(int teamNumber, {int? year})` | `GET /team/frc{n}/awards[/{year}]` | `List<TbaAward>` |
 | `getMatch(String matchKey)` | `GET /match/{key}` | `TbaMatch?` |
 
@@ -89,6 +90,10 @@ if (predicted != null) {
     '(${(predicted.probability * 100).toStringAsFixed(0)}% confidence)',
   );
 }
+
+// The same call with TBA's predicted final qualification rank per team.
+final detailed = await client.getEventPredictionsDetailed('2026cmptx');
+print('frc254 predicted rank: ${detailed.ranks['frc254'] ?? 'N/A'}');
 
 // One team's awards. Pass a year to scope the list to a single season;
 // without one you get the team's whole history.

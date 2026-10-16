@@ -1518,5 +1518,42 @@ void main() {
 
       expect(await client.getEventPredictions('2026txhou'), isEmpty);
     });
+
+    test('the detailed call adds the average predicted rank by team', () async {
+      final client = clientReturning(<String, dynamic>{
+        'match_predictions': <String, dynamic>{
+          'qual': <String, dynamic>{
+            '2026txhou_qm1': <String, dynamic>{
+              'red': <String, dynamic>{'score': 100},
+              'blue': <String, dynamic>{'score': 90},
+              'winning_alliance': 'red',
+              'prob': 0.6,
+            },
+          },
+        },
+        'ranking_predictions': <Object>[
+          <Object>['frc118', <num>[1, 1, 1, 2, 50.0, 48, 52]],
+          <Object>['frc624', <num>[3, 2, 3, 5, 42.0, 40, 44]],
+          <Object>['frc231', 'not a list'],
+          'not a row',
+        ],
+      });
+
+      final predictions = await client.getEventPredictionsDetailed('2026txhou');
+
+      expect(predictions.matches.keys, <String>['2026txhou_qm1']);
+      expect(predictions.ranks, <String, int>{'frc118': 1, 'frc624': 3});
+    });
+
+    test('the detailed call is empty on a 404', () async {
+      final client = TbaClient(
+        config: InMemoryTbaConfig('test-key'),
+        httpClient: MockClient((_) async => http.Response('', 404)),
+      );
+
+      final predictions = await client.getEventPredictionsDetailed('2026txhou');
+      expect(predictions.matches, isEmpty);
+      expect(predictions.ranks, isEmpty);
+    });
   });
 }

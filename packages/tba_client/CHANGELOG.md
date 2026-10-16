@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0
+
+- `getEventPredictionsDetailed(eventKey)` returns a `TbaEventPredictions`
+  holding the match predictions `getEventPredictions` already returns, plus
+  `ranks`: each team's average simulated final qualification rank from
+  `ranking_predictions`, keyed by team key. Both come from one request.
+  Additive: `getEventPredictions` keeps its signature and now reads from the
+  same parse.
+
 ## 0.9.0
 
 - `getTeamAwards(int teamNumber, {int? year})` reads

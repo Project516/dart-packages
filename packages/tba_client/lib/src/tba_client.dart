@@ -256,33 +256,19 @@ class TbaClient {
   /// match key already says which is which.
   Future<Map<String, TbaMatchPrediction>> getEventPredictions(
     String eventKey,
+  ) async =>
+      (await getEventPredictionsDetailed(eventKey)).matches;
+
+  /// The same `/event/{eventKey}/predictions` call as [getEventPredictions],
+  /// plus TBA's predicted final qualification rank for each team.
+  Future<TbaEventPredictions> getEventPredictionsDetailed(
+    String eventKey,
   ) async {
     final body = await _get('/event/$eventKey/predictions');
-    if (body == null) {
-      return const <String, TbaMatchPrediction>{};
-    }
+    if (body == null) return const TbaEventPredictions.empty();
     final decoded = jsonDecode(body);
-    if (decoded is! Map) {
-      return const <String, TbaMatchPrediction>{};
-    }
-    final byLevel = decoded['match_predictions'];
-    if (byLevel is! Map) {
-      return const <String, TbaMatchPrediction>{};
-    }
-    final predictions = <String, TbaMatchPrediction>{};
-    for (final level in byLevel.values) {
-      if (level is! Map) continue;
-      for (final entry in level.entries) {
-        final key = entry.key;
-        final value = entry.value;
-        if (key is! String || key.isEmpty || value is! Map) continue;
-        predictions[key] = TbaMatchPrediction.fromJson(
-          key,
-          Map<String, dynamic>.from(value),
-        );
-      }
-    }
-    return Map<String, TbaMatchPrediction>.unmodifiable(predictions);
+    if (decoded is! Map) return const TbaEventPredictions.empty();
+    return TbaEventPredictions.fromJson(Map<String, dynamic>.from(decoded));
   }
 
   /// `GET /match/{matchKey}` — returns the match with its video list, or

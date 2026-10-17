@@ -10,8 +10,8 @@ import 'tba_models.dart';
 ///
 /// Adds the `X-TBA-Auth-Key` header on every request (TBA strongly recommends
 /// the header form over the query-string form because URL-embedded keys defeat
-/// CDN caching). Caching via ETag / If-None-Match is a follow-up and is not
-/// implemented here.
+/// CDN caching). There is no ETag / If-None-Match caching; the only cache is
+/// the optional events cache server below.
 class TbaClient {
   /// [eventsCacheUrl] is an optional server that answers `GET
   /// {eventsCacheUrl}/events/{year}` with the same JSON list TBA's
@@ -113,7 +113,7 @@ class TbaClient {
     return _parseEvents(body);
   }
 
-  /// Null on any failure, so the caller falls back to TBA.
+  /// Null on any failure or an implausible list, so the caller falls back to TBA.
   Future<List<TbaEvent>?> _cachedEventsForYear(int year) async {
     final base = _eventsCacheUrl;
     if (base == null || base.isEmpty) {
@@ -127,7 +127,11 @@ class TbaClient {
       if (response.statusCode != 200) {
         return null;
       }
-      return _parseEvents(utf8.decode(response.bodyBytes));
+      final events = _parseEvents(utf8.decode(response.bodyBytes));
+      final plausible = events.every(
+        (e) => e.key.isNotEmpty && e.name.isNotEmpty && e.year == year,
+      );
+      return plausible ? events : null;
     } catch (_) {
       return null;
     }
@@ -192,10 +196,7 @@ class TbaClient {
     if (decoded == null) {
       return null;
     }
-    return TbaEventCoprs.fromJson(
-      eventKey,
-      decoded as Map<String, dynamic>,
-    );
+    return TbaEventCoprs.fromJson(eventKey, decoded as Map<String, dynamic>);
   }
 
   /// `GET /event/{eventKey}/oprs` — plain OPR, DPR and CCWM per team, or null
@@ -210,10 +211,7 @@ class TbaClient {
     if (decoded == null) {
       return null;
     }
-    return TbaEventOprs.fromJson(
-      eventKey,
-      decoded as Map<String, dynamic>,
-    );
+    return TbaEventOprs.fromJson(eventKey, decoded as Map<String, dynamic>);
   }
 
   /// `GET /event/{eventKey}/rankings` — the qualification ranking table, or
@@ -280,9 +278,9 @@ class TbaClient {
       return const <TbaAward>[];
     }
     return List<TbaAward>.unmodifiable(
-      decoded
-          .whereType<Map>()
-          .map((a) => TbaAward.fromJson(Map<String, dynamic>.from(a))),
+      decoded.whereType<Map>().map(
+            (a) => TbaAward.fromJson(Map<String, dynamic>.from(a)),
+          ),
     );
   }
 

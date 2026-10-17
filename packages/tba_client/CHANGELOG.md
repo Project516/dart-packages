@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.0
+
+- `TbaClient` takes an optional `eventsCacheUrl`. When set,
+  `getEventsForYear` first asks `GET {eventsCacheUrl}/events/{year}`, a server
+  that answers with TBA's `/events/{year}` list (any subset of its fields),
+  and falls back to TBA when that request fails, answers anything but 200 with
+  a JSON list, or takes longer than `eventsCacheTimeout` (default 5 seconds).
+  A cache answer needs no TBA key. Additive: without the URL nothing changes.
+
 ## 0.10.0
 
 - `getEventPredictionsDetailed(eventKey)` returns a `TbaEventPredictions`

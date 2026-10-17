@@ -10,11 +10,11 @@ final team = await client.getTeam(1234);
 final matches = await client.getEventMatches('2026txhou');
 ```
 
-Covers teams, team avatars (media), events, event team lists, match schedules, plain OPR/DPR/CCWM, component OPR (COPRS) breakdowns, qualification rankings, playoff alliances, event awards, and TBA's own per-match predictions, decoded into plain Dart models. The `TbaConfig` seam decides where the `X-TBA-Auth-Key` comes from: `CompileTimeTbaConfig` reads a `--dart-define=TBA_API_KEY`, `InMemoryTbaConfig` holds one directly, and your app can implement the interface to resolve keys from anywhere (the source app chains a Firestore-stored team key). A missing key throws `TbaApiKeyMissingException` before any request goes out.
+Covers teams, team avatars (media), events, event team lists, match schedules, plain OPR/DPR/CCWM, component OPR (COPRS) breakdowns, qualification rankings, playoff alliances, event awards, and TBA's own per-match predictions, decoded into plain Dart models. The `TbaConfig` seam decides where the `X-TBA-Auth-Key` comes from: `CompileTimeTbaConfig` reads a `--dart-define=TBA_API_KEY`, `InMemoryTbaConfig` holds one directly, and your app can implement the interface to resolve keys from anywhere (the source app chains a Firestore-stored team key). A missing key throws `TbaApiKeyMissingException` before any request to TBA goes out; a request to the events cache needs no key.
 
 ## API key resolution
 
-`TbaClient` needs a TBA auth key on every request (the `X-TBA-Auth-Key` header, preferred over the query-string form so CDN caching stays intact). Three out-of-the-box options, all injectable through `TbaConfig`:
+`TbaClient` needs a TBA auth key on every request to TBA (the `X-TBA-Auth-Key` header, preferred over the query-string form so CDN caching stays intact). Three out-of-the-box options, all injectable through `TbaConfig`:
 
 - `CompileTimeTbaConfig` - reads `String.fromEnvironment('TBA_API_KEY')`, set via `--dart-define=TBA_API_KEY=...` or `--dart-define-from-file=tba.env`. The default for the source app.
 - `InMemoryTbaConfig` - holds a key in memory; handy for tests and quick scripts. Use `InMemoryTbaConfig('')` for an empty key.
@@ -22,6 +22,24 @@ Covers teams, team avatars (media), events, event team lists, match schedules, p
 
 ```dart
 final client = TbaClient(config: CompileTimeTbaConfig());
+```
+
+## Events cache
+
+Pass `eventsCacheUrl` to read `getEventsForYear` from a server you run instead
+of TBA. The server answers `GET {eventsCacheUrl}/events/{year}` with the same
+JSON list TBA's `/events/{year}` does, or any subset of its fields. The client
+falls back to TBA when the server fails, answers anything but 200 with a JSON
+list, is slower than `eventsCacheTimeout` (5 seconds by default), or answers
+a non-empty list where an event has an empty key or name or a year other than
+the one requested. A cache request needs no TBA key; only the fallback to TBA
+does.
+
+```dart
+final client = TbaClient(
+  config: CompileTimeTbaConfig(),
+  eventsCacheUrl: 'https://events-cache.example',
+);
 ```
 
 ## API reference
@@ -35,7 +53,7 @@ final client = TbaClient(config: CompileTimeTbaConfig());
 | `getEventTeams(String eventKey)` | `GET /event/{key}/teams/simple` | `List<TbaTeam>` |
 | `fetchTeamAvatar(int teamNumber, int year)` | `GET /team/frc{n}/media/{year}` | `Uint8List?` (PNG bytes) |
 | `getEvent(String eventKey)` | `GET /event/{key}` | `TbaEvent?` |
-| `getEventsForYear(int year)` | `GET /events/{year}` | `List<TbaEvent>` |
+| `getEventsForYear(int year)` | `GET /events/{year}`, from the events cache first when one is set | `List<TbaEvent>` |
 | `getEventMatches(String eventKey)` | `GET /event/{key}/matches/simple` | `List<TbaScheduleMatch>` |
 | `getEventMatchesDetailed(String eventKey)` | `GET /event/{key}/matches` | `List<TbaScheduleMatch>` |
 | `getEventOprs(String eventKey)` | `GET /event/{key}/oprs` | `TbaEventOprs?` |
@@ -120,7 +138,7 @@ for (final award in awards.where((a) => a.isWinOrFinalist)) {
 
 ### Exceptions
 
-- `TbaApiKeyMissingException` - no usable key was resolved. Thrown before any network call so you can handle it as a configuration error rather than a transport one.
+- `TbaApiKeyMissingException` - no usable key was resolved for a request to TBA. Thrown before that request, so you can handle it as a configuration error rather than a transport one.
 - `TbaApiException` - carries `statusCode` and the raw response `body`. Raised on non-2xx responses that are not 404 (or on any non-2xx for `getStatus`).
 
 Call `client.close()` when you are done to release the underlying `http.Client`.

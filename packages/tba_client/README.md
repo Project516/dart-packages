@@ -24,6 +24,22 @@ Covers teams, team avatars (media), events, event team lists, match schedules, p
 final client = TbaClient(config: CompileTimeTbaConfig());
 ```
 
+## Events cache
+
+Pass `eventsCacheUrl` to read `getEventsForYear` from a server you run instead
+of TBA. The server answers `GET {eventsCacheUrl}/events/{year}` with the same
+JSON list TBA's `/events/{year}` does, or any subset of its fields. The client
+falls back to TBA when the server fails, answers anything but 200 with a JSON
+list, or is slower than `eventsCacheTimeout` (5 seconds by default). A cache
+answer needs no TBA key.
+
+```dart
+final client = TbaClient(
+  config: CompileTimeTbaConfig(),
+  eventsCacheUrl: 'https://events-cache.example',
+);
+```
+
 ## API reference
 
 `TbaClient` targets `/api/v3` on `www.thebluealliance.com`. List endpoints return an empty list on 404; single-object endpoints return `null` on 404. Some event sub-resources (`getEventRankings`, `getEventAlliances`, `getEventAwards`, `getEventCoprs`, `getEventOprs`) also return `null` for a normal pre-event state (no rankings yet, no alliance selection, no awards ceremony), so a null is not an error. `getTeamAwards` returns an empty list for a team that has won nothing and for a team key TBA does not know, neither of which is an error. `getEventPredictions` and `getEventPredictionsDetailed` are the exception to that pattern: they return empty results on 404 and on the `{}` TBA answers before it has enough data, which is the normal state early at an event and the permanent state at an offseason one. Anything else outside 2xx throws `TbaApiException`. `getStatus` treats 404 as a hard error so you can tell a misconfigured base URL / bad key apart from a normal "not found".
@@ -35,7 +51,7 @@ final client = TbaClient(config: CompileTimeTbaConfig());
 | `getEventTeams(String eventKey)` | `GET /event/{key}/teams/simple` | `List<TbaTeam>` |
 | `fetchTeamAvatar(int teamNumber, int year)` | `GET /team/frc{n}/media/{year}` | `Uint8List?` (PNG bytes) |
 | `getEvent(String eventKey)` | `GET /event/{key}` | `TbaEvent?` |
-| `getEventsForYear(int year)` | `GET /events/{year}` | `List<TbaEvent>` |
+| `getEventsForYear(int year)` | `GET /events/{year}`, from the events cache first when one is set | `List<TbaEvent>` |
 | `getEventMatches(String eventKey)` | `GET /event/{key}/matches/simple` | `List<TbaScheduleMatch>` |
 | `getEventMatchesDetailed(String eventKey)` | `GET /event/{key}/matches` | `List<TbaScheduleMatch>` |
 | `getEventOprs(String eventKey)` | `GET /event/{key}/oprs` | `TbaEventOprs?` |

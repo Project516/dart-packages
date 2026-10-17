@@ -4,7 +4,7 @@ Small Dart and Flutter packages, each versioned and tagged on its own.
 
 | Package | Version | What it is |
 | --- | --- | --- |
-| [tba_client](packages/tba_client) | 0.10.0 | The Blue Alliance API v3 client, pure Dart. |
+| [tba_client](packages/tba_client) | 0.11.0 | The Blue Alliance API v3 client, pure Dart. |
 | [statbotics_client](packages/statbotics_client) | 0.4.0 | Statbotics API client, pure Dart. |
 | [match13_client](packages/match13_client) | 0.2.0 | match13 API client, pure Dart. |
 | [firestore_client](packages/firestore_client) | 0.6.0 | Firebase Auth and Firestore over REST, pure Dart. |
@@ -22,7 +22,7 @@ dependencies:
     git:
       url: https://github.com/Project516/dart-packages
       path: packages/tba_client
-      ref: tba_client-v0.10.0
+      ref: tba_client-v0.11.0
 ```
 
 ## Development

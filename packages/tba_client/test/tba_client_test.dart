@@ -495,6 +495,109 @@ void main() {
     expect(await client.getEventsForYear(1999), isEmpty);
   });
 
+  group('getEventsForYear with an events cache', () {
+    final cachedList = utf8.encode(
+      jsonEncode(<Map<String, dynamic>>[
+        <String, dynamic>{
+          'key': '2026qcmo',
+          'name': 'Regional de Montréal',
+          'year': 2026,
+          'week': 2,
+        },
+      ]),
+    );
+
+    test('answers from the cache without a TBA key or a TBA call', () async {
+      final urls = <String>[];
+      final client = TbaClient(
+        config: InMemoryTbaConfig(),
+        eventsCacheUrl: 'https://cache.example/',
+        httpClient: MockClient((request) async {
+          urls.add(request.url.toString());
+          expect(request.headers.containsKey('X-TBA-Auth-Key'), isFalse);
+          return http.Response.bytes(cachedList, 200);
+        }),
+      );
+
+      final events = await client.getEventsForYear(2026);
+      expect(urls, <String>['https://cache.example/events/2026']);
+      expect(events.single.key, '2026qcmo');
+      expect(events.single.name, 'Regional de Montréal');
+      expect(events.single.week, 3);
+    });
+
+    test('trusts an empty list from the cache', () async {
+      final client = TbaClient(
+        config: InMemoryTbaConfig(),
+        eventsCacheUrl: 'https://cache.example',
+        httpClient: MockClient((_) async => http.Response('[]', 200)),
+      );
+      expect(await client.getEventsForYear(2027), isEmpty);
+    });
+
+    Future<List<String>> fallbackUrls(
+      Future<http.Response> Function() cacheAnswer, {
+      Duration timeout = const Duration(seconds: 5),
+    }) async {
+      final urls = <String>[];
+      final client = TbaClient(
+        config: InMemoryTbaConfig('test-key'),
+        eventsCacheUrl: 'https://cache.example',
+        eventsCacheTimeout: timeout,
+        httpClient: MockClient((request) async {
+          urls.add(request.url.toString());
+          if (request.url.host == 'cache.example') return cacheAnswer();
+          expect(request.headers['X-TBA-Auth-Key'], 'test-key');
+          return http.Response.bytes(cachedList, 200);
+        }),
+      );
+      final events = await client.getEventsForYear(2026);
+      expect(events.single.key, '2026qcmo');
+      return urls;
+    }
+
+    const bothCalls = <String>[
+      'https://cache.example/events/2026',
+      'https://www.thebluealliance.com/api/v3/events/2026',
+    ];
+
+    test('falls back to TBA on a cache error status', () async {
+      expect(
+        await fallbackUrls(() async => http.Response('', 502)),
+        bothCalls,
+      );
+    });
+
+    test('falls back to TBA when the cache is unreachable', () async {
+      expect(
+        await fallbackUrls(
+          () async => throw http.ClientException('offline'),
+        ),
+        bothCalls,
+      );
+    });
+
+    test('falls back to TBA on a body that is not a list', () async {
+      expect(
+        await fallbackUrls(() async => http.Response('{"error":1}', 200)),
+        bothCalls,
+      );
+    });
+
+    test('falls back to TBA when the cache is too slow', () async {
+      expect(
+        await fallbackUrls(
+          () => Future<http.Response>.delayed(
+            const Duration(seconds: 1),
+            () => http.Response('[]', 200),
+          ),
+          timeout: const Duration(milliseconds: 10),
+        ),
+        bothCalls,
+      );
+    });
+  });
+
   test('TbaClient.getEventMatches sends correct path and parses alliances',
       () async {
     final mockClient = MockClient((request) async {

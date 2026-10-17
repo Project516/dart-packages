@@ -13,14 +13,26 @@ import 'tba_models.dart';
 /// CDN caching). Caching via ETag / If-None-Match is a follow-up and is not
 /// implemented here.
 class TbaClient {
-  TbaClient({required TbaConfig config, http.Client? httpClient})
-      : _config = config,
-        _httpClient = httpClient ?? http.Client();
+  /// [eventsCacheUrl] is an optional server that answers `GET
+  /// {eventsCacheUrl}/events/{year}` with the same JSON list TBA's
+  /// `/events/{year}` does (any subset of its fields). [getEventsForYear]
+  /// asks it first and falls back to TBA when it fails or takes longer than
+  /// [eventsCacheTimeout].
+  TbaClient({
+    required TbaConfig config,
+    http.Client? httpClient,
+    String? eventsCacheUrl,
+    this.eventsCacheTimeout = const Duration(seconds: 5),
+  })  : _config = config,
+        _httpClient = httpClient ?? http.Client(),
+        _eventsCacheUrl = eventsCacheUrl?.replaceFirst(RegExp(r'/+$'), '');
 
   static const String baseUrl = 'https://www.thebluealliance.com/api/v3';
 
   final TbaConfig _config;
   final http.Client _httpClient;
+  final String? _eventsCacheUrl;
+  final Duration eventsCacheTimeout;
 
   /// `GET /status` — returns the API status payload. Useful as a connectivity
   /// and auth-key smoke test.
@@ -87,13 +99,41 @@ class TbaClient {
     return TbaEvent.fromJson(jsonDecode(body) as Map<String, dynamic>);
   }
 
-  /// `GET /events/{year}` — all events for [year]. Used as the event-list
-  /// fallback when Statbotics is down.
+  /// `GET /events/{year}` — all events for [year], from the events cache
+  /// when one is configured and answers, otherwise from TBA.
   Future<List<TbaEvent>> getEventsForYear(int year) async {
+    final cached = await _cachedEventsForYear(year);
+    if (cached != null) {
+      return cached;
+    }
     final body = await _get('/events/$year');
     if (body == null) {
       return const <TbaEvent>[];
     }
+    return _parseEvents(body);
+  }
+
+  /// Null on any failure, so the caller falls back to TBA.
+  Future<List<TbaEvent>?> _cachedEventsForYear(int year) async {
+    final base = _eventsCacheUrl;
+    if (base == null || base.isEmpty) {
+      return null;
+    }
+    try {
+      final response = await _httpClient.get(
+        Uri.parse('$base/events/$year'),
+        headers: const <String, String>{'Accept': 'application/json'},
+      ).timeout(eventsCacheTimeout);
+      if (response.statusCode != 200) {
+        return null;
+      }
+      return _parseEvents(utf8.decode(response.bodyBytes));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static List<TbaEvent> _parseEvents(String body) {
     final list = jsonDecode(body) as List<dynamic>;
     return list
         .map(

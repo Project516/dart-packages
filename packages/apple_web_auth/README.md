@@ -25,6 +25,6 @@ scheme it registered.
   retry, so it is worth telling apart.
 - **The session shares Safari's cookies.** Somebody already signed in to the
   provider is not asked again. `prefersEphemeralWebBrowserSession` is off for
-  that reason; turn it on only if a shared device makes that wrong.
+  that reason, and the package has no option to turn it on.
 - Off iOS and macOS every call throws rather than doing nothing, so a caller
   that reaches here on the wrong platform finds out.

@@ -10,7 +10,7 @@ final team = await client.getTeam(1234);
 final matches = await client.getEventMatches('2026txhou');
 ```
 
-Covers teams, team avatars (media), events, event team lists, match schedules, plain OPR/DPR/CCWM, component OPR (COPRS) breakdowns, qualification rankings, playoff alliances, event awards, and TBA's own per-match predictions, decoded into plain Dart models. The `TbaConfig` seam decides where the `X-TBA-Auth-Key` comes from: `CompileTimeTbaConfig` reads a `--dart-define=TBA_API_KEY`, `InMemoryTbaConfig` holds one directly, and your app can implement the interface to resolve keys from anywhere (the source app chains a Firestore-stored team key). A missing key throws `TbaApiKeyMissingException` before any request to TBA goes out; a request to the events cache needs no key.
+Covers teams, team avatars (media), a team's events and its matches at one event, events, event team lists, match schedules, plain OPR/DPR/CCWM, component OPR (COPRS) breakdowns, qualification rankings, playoff alliances, event and team awards, and TBA's own match predictions and predicted ranks, decoded into plain Dart models. The `TbaConfig` seam decides where the `X-TBA-Auth-Key` comes from: `CompileTimeTbaConfig` reads a `--dart-define=TBA_API_KEY`, `InMemoryTbaConfig` holds one directly, and your app can implement the interface to resolve keys from anywhere (the source app chains a Firestore-stored team key). A missing key throws `TbaApiKeyMissingException` before any request to TBA goes out; a request to the events cache needs no key.
 
 ## API key resolution
 
@@ -130,12 +130,13 @@ for (final award in awards.where((a) => a.isWinOrFinalist)) {
 - `TbaScheduleMatch` - `key`, `compLevel`, `matchNumber`, `setNumber`, and `redTeams` / `blueTeams` as plain `int` team numbers (non-`frc`-prefixed keys are dropped). Missing `comp_level` defaults to `'qm'`.
 - `TbaEventCoprs` - component OPR breakdown. `eventKey` plus a `stats` map that is **stat major**: the outer keys are stat names and the inner keys are team keys (for example `{"foulPoints": {"frc254": 4.5}}`). Stat names vary per game year and mix human-readable labels (`Total Coral Points`) with raw camelCase (`teleopCoralPoints`), so the model carries an open map rather than named fields. `operator [](statName)` fetches a team-keyed column; `forTeam(teamKey)` returns every stat that team has as a map; `statNames` lists them; `isEmpty` reports whether any stats are present. Entries with non-numeric values are skipped individually. This endpoint carries **component** OPRs only: plain OPR, DPR and CCWM are not in this payload, use [TbaEventOprs] for those.
 - `TbaEventOprs` - plain OPR, DPR and CCWM per team for an event, as three team-keyed maps (`oprs`, `dprs`, `ccwms`). Separate from `TbaEventCoprs` because TBA serves them separately and the COPRS payload has no OPR in it. `isEmpty` reports whether every section came back empty.
-- `TbaEventRankings` - the qualification ranking table. `eventKey` plus `rankings` (one `TbaTeamRanking` per team in rank order) and `sortOrderNames`, the column names the payload pairs with each row's `sortOrders`. Those names are game-specific and change every season, so they are read from the payload rather than hardcoded. `sortOrdersFor(ranking)` pairs a row's values with its names for a table; extra values with no matching name are dropped. `isEmpty` reports whether any rows are present. `TbaTeamRanking` carries `teamKey`, `rank`, `teamNumber`, `wins`, `losses`, `ties`, `qualScore`, and `sortOrders` (positional).
+- `TbaEventRankings` - the qualification ranking table. `eventKey` plus `rankings` (one `TbaTeamRanking` per team in rank order) and `sortOrderNames`, the column names the payload pairs with each row's `sortOrders`. Those names are game-specific and change every season, so they are read from the payload rather than hardcoded. `sortOrdersFor(ranking)` pairs a row's values with its names for a table; extra values with no matching name are dropped. `extraStatsNames` and `extraStatsFor(ranking)` do the same for each row's `extraStats`. `isEmpty` reports whether any rows are present. `TbaTeamRanking` carries `teamKey`, `rank`, `teamNumber`, `wins`, `losses`, `ties`, `record` (`wins-losses-ties`), `matchesPlayed`, `dq`, nullable `qualAverage`, and `sortOrders` / `extraStats` (positional).
 - `TbaEventAlliances` - playoff alliances in pick order. `eventKey` plus an `alliances` list of `TbaAlliance`. The order is preserved exactly as returned and never sorted: `picks` is team keys in pick order (captain first), `captain` is the first pick (or null when empty), `status` is how far the alliance got (e.g. `f`, `sf`, or empty), and `record` is the playoff record as `wins-losses-ties`. `isEmpty` reports whether any alliances are present.
 - `TbaEventAwards` - awards presented at an event. `eventKey` plus an `awards` list of `TbaAward`. `forTeam(teamKey)` returns every award that team received. `isEmpty` reports whether any awards are present.
 - `TbaAward` - one award: `name`, `awardType`, `eventKey`, `year`, and `recipients` (`TbaAwardRecipient`), where a recipient may be a team, a person, or both, so team awards can be told apart from individual ones. `isWinOrFinalist` is true for TBA award types 1 and 2, the winner and finalist slots at every level of play, which separates a result from a judged or individual award. `eventKey` and `year` matter most for `getTeamAwards`, where one list spans a team's whole history and neither is implied by the call.
 - `TbaMatch` - `key` and a `List<TbaMatchVideo>`. `youtubeVideo` returns the first YouTube entry; `TbaMatchVideo.youtubeUrl` builds the watch URL.
 - `TbaMatchPrediction` - TBA's predicted outcome for one match (`/event/{key}/predictions`). `matchKey`, the two predicted scores (`redScore`, `blueScore`), `winningAlliance` (`red`, `blue`, or empty when the payload does not say), and `probability` (TBA's confidence in `winningAlliance`, 0 to 1, not the red alliance's chance). The per-game component means and variances that the payload also carries are renamed every season, so they are deliberately not modelled.
+- `TbaEventPredictions` - what `getEventPredictionsDetailed` returns: `matches`, the same map `getEventPredictions` returns, and `ranks`, each team's average simulated final qualification rank keyed by team key. Both are empty when TBA has not simulated the event.
 - `TbaApiStatus` - `currentSeason` and `maxSeason` from the `/status` endpoint.
 
 ### Exceptions
@@ -154,13 +155,11 @@ dart test
 
 Tests use a mock `http.Client` (from `package:http/testing`) so they run without network access.
 
-## License
-
-AGPL-3.0
-
-## Tests
-
 Model tests assert against captured live response bodies in `test/fixtures/`,
 not only hand-written maps, so a change to TBA's response shape fails a test
 rather than reaching a consumer. Refresh a fixture with the `curl` in the
 comment above `_fixture` in `test/live_fixtures_test.dart`.
+
+## License
+
+AGPL-3.0

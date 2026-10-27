@@ -10,13 +10,13 @@ final team = await client.getTeam(1234);
 final matches = await client.getEventMatches('2026txhou');
 ```
 
-Covers teams, team avatars (media), a team's events and its matches at one event, events, event team lists, match schedules, plain OPR/DPR/CCWM, component OPR (COPRS) breakdowns, qualification rankings, playoff alliances, event and team awards, and TBA's own match predictions and predicted ranks, decoded into plain Dart models. The `TbaConfig` seam decides where the `X-TBA-Auth-Key` comes from: `CompileTimeTbaConfig` reads a `--dart-define=TBA_API_KEY`, `InMemoryTbaConfig` holds one directly, and your app can implement the interface to resolve keys from anywhere (the source app chains a Firestore-stored team key). A missing key throws `TbaApiKeyMissingException` before any request to TBA goes out; a request to the events cache needs no key.
+Covers teams, team avatars (media), a team's events and its matches at one event, events, event team lists, match schedules, plain OPR/DPR/CCWM, component OPR (COPRS) breakdowns, qualification rankings, playoff alliances, event and team awards, and TBA's own match predictions and predicted ranks, decoded into plain Dart models. The `TbaConfig` seam decides where the `X-TBA-Auth-Key` comes from: `CompileTimeTbaConfig` reads a `--dart-define=TBA_API_KEY`, `InMemoryTbaConfig` holds one directly, and your app can implement the interface to resolve keys from anywhere. A missing key throws `TbaApiKeyMissingException` before any request to TBA goes out; a request to the events cache needs no key.
 
 ## API key resolution
 
 `TbaClient` needs a TBA auth key on every request to TBA (the `X-TBA-Auth-Key` header, preferred over the query-string form so CDN caching stays intact). Three out-of-the-box options, all injectable through `TbaConfig`:
 
-- `CompileTimeTbaConfig` - reads `String.fromEnvironment('TBA_API_KEY')`, set via `--dart-define=TBA_API_KEY=...` or `--dart-define-from-file=tba.env`. The default for the source app.
+- `CompileTimeTbaConfig` - reads `String.fromEnvironment('TBA_API_KEY')`, set via `--dart-define=TBA_API_KEY=...` or `--dart-define-from-file=tba.env`.
 - `InMemoryTbaConfig` - holds a key in memory; handy for tests and quick scripts. Use `InMemoryTbaConfig('')` for an empty key.
 - Custom - implement `TbaConfig` yourself to resolve keys from a remote store, user settings, or a secrets manager.
 
@@ -136,7 +136,7 @@ for (final award in awards.where((a) => a.isWinOrFinalist)) {
 - `TbaAward` - one award: `name`, `awardType`, `eventKey`, `year`, and `recipients` (`TbaAwardRecipient`), where a recipient may be a team, a person, or both, so team awards can be told apart from individual ones. `isWinOrFinalist` is true for TBA award types 1 and 2, the winner and finalist slots at every level of play, which separates a result from a judged or individual award. `eventKey` and `year` matter most for `getTeamAwards`, where one list spans a team's whole history and neither is implied by the call.
 - `TbaMatch` - `key` and a `List<TbaMatchVideo>`. `youtubeVideo` returns the first YouTube entry; `TbaMatchVideo.youtubeUrl` builds the watch URL.
 - `TbaMatchPrediction` - TBA's predicted outcome for one match (`/event/{key}/predictions`). `matchKey`, the two predicted scores (`redScore`, `blueScore`), `winningAlliance` (`red`, `blue`, or empty when the payload does not say), and `probability` (TBA's confidence in `winningAlliance`, 0 to 1, not the red alliance's chance). The per-game component means and variances that the payload also carries are renamed every season, so they are deliberately not modelled.
-- `TbaEventPredictions` - what `getEventPredictionsDetailed` returns: `matches`, the same map `getEventPredictions` returns, and `ranks`, each team's average simulated final qualification rank keyed by team key. Both are empty when TBA has not simulated the event.
+- `TbaEventPredictions` - what `getEventPredictionsDetailed` returns: `matches`, the same map `getEventPredictions` returns, and `ranks`, each team's average simulated final qualification rank, rounded to a whole number and keyed by team key. Both are empty when TBA has not simulated the event.
 - `TbaApiStatus` - `currentSeason` and `maxSeason` from the `/status` endpoint.
 
 ### Exceptions

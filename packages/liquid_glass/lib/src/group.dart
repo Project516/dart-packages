@@ -167,9 +167,10 @@ class GlassGroupScope extends InheritedWidget {
 /// )
 /// ```
 ///
-/// A member that stays in the tree but stops painting (`Offstage`,
-/// `Visibility(visible: false)`) keeps its shape in the container, because the
-/// report happens while painting. Build the member conditionally instead.
+/// A member that stays in the tree but stops painting (`Offstage`, or
+/// `Visibility` with `maintainState`) keeps its shape in the container,
+/// because the report happens while painting. Build the member conditionally
+/// instead.
 class LiquidGlassGroup extends StatefulWidget {
   const LiquidGlassGroup({super.key, this.spacing = 0, required this.child});
 

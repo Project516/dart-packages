@@ -48,14 +48,16 @@ Stack(
 )
 ```
 
-A member hidden with `Offstage` or `Visibility(visible: false)` keeps its
-shape in the container. Build it conditionally instead.
+A member hidden with `Offstage`, or with `Visibility` and `maintainState`,
+keeps its shape in the container. Build it conditionally instead.
 
 ## Things worth knowing before using it
 
-- **It is configured once, at creation.** Rebuilding with a different
-  `cornerRadius`, `tint` or `brightness` changes nothing. Pass a `Key` that
-  varies with those values so the element is replaced.
+- **Outside a group it is configured once, at creation.** Rebuilding with a
+  different `cornerRadius`, `tint` or `brightness` changes nothing. Pass a
+  `Key` that varies with those values so the element is replaced. Inside a
+  `LiquidGlassGroup`, `cornerRadius`, `tint` and `interactive` update on
+  rebuild.
 - **It is expensive compared to a painted box.** Use it for fixed chrome such
   as a bar, a menu or a floating panel, never per row in a scrolling list.
 - `brightness` is not yet honored on a `LiquidGlass` inside a

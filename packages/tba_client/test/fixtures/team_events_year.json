@@ -1,0 +1,50 @@
+[
+ {
+  "key": "2026cacc",
+  "name": "Capital City Classic",
+  "year": 2026,
+  "event_code": "cacc",
+  "event_type": 99,
+  "district": null,
+  "start_date": "2026-10-23",
+  "end_date": "2026-10-25",
+  "city": "Elk Grove,",
+  "state_prov": "CA",
+  "country": "USA"
+ },
+ {
+  "key": "2026casac",
+  "name": "CA District Sacramento Event",
+  "year": 2026,
+  "event_code": "casac",
+  "event_type": 1,
+  "district": {
+   "key": "2026ca",
+   "year": 2026,
+   "abbreviation": "ca",
+   "display_name": "FIRST California",
+   "official_advancement_counts": {
+    "dcmp": 120,
+    "cmp": 46
+   }
+  },
+  "start_date": "2026-03-20",
+  "end_date": "2026-03-22",
+  "city": "Elk Grove",
+  "state_prov": "CA",
+  "country": "USA"
+ },
+ {
+  "key": "2026cc",
+  "name": "Chezy Champs",
+  "year": 2026,
+  "event_code": "cc",
+  "event_type": 99,
+  "district": null,
+  "start_date": "2026-09-18",
+  "end_date": "2026-09-20",
+  "city": "San Jose",
+  "state_prov": "CA",
+  "country": "USA"
+ }
+]

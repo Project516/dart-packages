@@ -50,6 +50,8 @@ final client = TbaClient(
 | --- | --- | --- |
 | `getStatus()` | `GET /status` | `TbaApiStatus` |
 | `getTeam(int teamNumber)` | `GET /team/frc{n}` | `TbaTeam?` |
+| `getTeamEvents(int teamNumber, int year)` | `GET /team/frc{n}/events/{year}/simple` | `List<TbaEvent>` |
+| `getTeamEventMatches(int teamNumber, String eventKey)` | `GET /team/frc{n}/event/{key}/matches` | `List<TbaScheduleMatch>` |
 | `getEventTeams(String eventKey)` | `GET /event/{key}/teams/simple` | `List<TbaTeam>` |
 | `fetchTeamAvatar(int teamNumber, int year)` | `GET /team/frc{n}/media/{year}` | `Uint8List?` (PNG bytes) |
 | `getEvent(String eventKey)` | `GET /event/{key}` | `TbaEvent?` |
@@ -124,8 +126,8 @@ for (final award in awards.where((a) => a.isWinOrFinalist)) {
 ### Models
 
 - `TbaTeam` - `key`, `teamNumber`, `nickname`, `name`, and nullable `city` / `stateProv` / `country`. `displayLocation` joins the non-empty location parts with commas.
-- `TbaEvent` - `key`, `name`, `year`, and optional `week` (TBA weeks are zero-based; this model offsets to one-based), `country`, `stateProv`, `startDate`, `endDate`.
-- `TbaScheduleMatch` - `key`, `compLevel`, `matchNumber`, and `redTeams` / `blueTeams` as plain `int` team numbers (non-`frc`-prefixed keys are dropped). Missing `comp_level` defaults to `'qm'`.
+- `TbaEvent` - `key`, `name`, `year`, and optional `week` (TBA weeks are zero-based; this model offsets to one-based), `country`, `stateProv`, `startDate`, `endDate`, `eventType`, and `isPreseason`.
+- `TbaScheduleMatch` - `key`, `compLevel`, `matchNumber`, `setNumber`, and `redTeams` / `blueTeams` as plain `int` team numbers (non-`frc`-prefixed keys are dropped). Missing `comp_level` defaults to `'qm'`.
 - `TbaEventCoprs` - component OPR breakdown. `eventKey` plus a `stats` map that is **stat major**: the outer keys are stat names and the inner keys are team keys (for example `{"foulPoints": {"frc254": 4.5}}`). Stat names vary per game year and mix human-readable labels (`Total Coral Points`) with raw camelCase (`teleopCoralPoints`), so the model carries an open map rather than named fields. `operator [](statName)` fetches a team-keyed column; `forTeam(teamKey)` returns every stat that team has as a map; `statNames` lists them; `isEmpty` reports whether any stats are present. Entries with non-numeric values are skipped individually. This endpoint carries **component** OPRs only: plain OPR, DPR and CCWM are not in this payload, use [TbaEventOprs] for those.
 - `TbaEventOprs` - plain OPR, DPR and CCWM per team for an event, as three team-keyed maps (`oprs`, `dprs`, `ccwms`). Separate from `TbaEventCoprs` because TBA serves them separately and the COPRS payload has no OPR in it. `isEmpty` reports whether every section came back empty.
 - `TbaEventRankings` - the qualification ranking table. `eventKey` plus `rankings` (one `TbaTeamRanking` per team in rank order) and `sortOrderNames`, the column names the payload pairs with each row's `sortOrders`. Those names are game-specific and change every season, so they are read from the payload rather than hardcoded. `sortOrdersFor(ranking)` pairs a row's values with its names for a table; extra values with no matching name are dropped. `isEmpty` reports whether any rows are present. `TbaTeamRanking` carries `teamKey`, `rank`, `teamNumber`, `wins`, `losses`, `ties`, `qualScore`, and `sortOrders` (positional).

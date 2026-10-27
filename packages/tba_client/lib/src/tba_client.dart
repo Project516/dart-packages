@@ -146,6 +146,25 @@ class TbaClient {
         .toList(growable: false);
   }
 
+  /// `GET /team/frc{teamNumber}/events/{year}/simple` — the events
+  /// [teamNumber] is registered for in [year], in TBA's order (by key, not
+  /// by date). Empty for a team with no events that season.
+  Future<List<TbaEvent>> getTeamEvents(int teamNumber, int year) async {
+    final body = await _get('/team/frc$teamNumber/events/$year/simple');
+    if (body == null) {
+      return const <TbaEvent>[];
+    }
+    return _parseEvents(body);
+  }
+
+  /// `GET /team/frc{teamNumber}/event/{eventKey}/matches` — [teamNumber]'s
+  /// matches at one event, with `videos` and `score_breakdown`.
+  Future<List<TbaScheduleMatch>> getTeamEventMatches(
+    int teamNumber,
+    String eventKey,
+  ) =>
+      _matches('/team/frc$teamNumber/event/$eventKey/matches');
+
   /// `GET /event/{eventKey}/matches/simple` — the event's match schedule.
   /// Used as the schedule fallback when Statbotics is down.
   ///

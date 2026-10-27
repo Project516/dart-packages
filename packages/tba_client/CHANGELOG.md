@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.0
+
+- `getTeamEvents(int teamNumber, int year)` reads
+  `/team/frc{n}/events/{year}/simple`: the events a team is registered for
+  in one season. Empty for a team with none.
+- `getTeamEventMatches(int teamNumber, String eventKey)` reads
+  `/team/frc{n}/event/{key}/matches`: one team's matches at one event, with
+  `videos` and `score_breakdown`.
+- `TbaEvent.eventType` carries TBA's `event_type`, with `isPreseason` for
+  type 100. `TbaScheduleMatch.setNumber` carries `set_number`, which names a
+  double-elimination playoff match (`sf7m1` is set 7). Both additive: the
+  new constructor parameters are optional.
+
 ## 0.11.0
 
 - `TbaClient` takes an optional `eventsCacheUrl`. When set,

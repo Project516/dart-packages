@@ -141,6 +141,42 @@ void main() {
       expect(match.videos.single.key, 'rC6xTPwthSg');
     });
 
+    test('TbaEvent decodes a real /team/{key}/events/{year}/simple body',
+        () async {
+      final events =
+          await _clientServing('team_events_year').getTeamEvents(1678, 2026);
+
+      expect(events.map((e) => e.key),
+          <String>['2026cacc', '2026casac', '2026cc']);
+      final cacc = events.first;
+      expect(cacc.name, 'Capital City Classic');
+      expect(cacc.eventType, 99);
+      expect(cacc.isPreseason, isFalse);
+      expect(cacc.startDate, '2026-10-23');
+      expect(cacc.endDate, '2026-10-25');
+      expect(events[1].eventType, 1);
+    });
+
+    test('TbaScheduleMatch decodes a real team event matches body', () async {
+      final matches = await _clientServing('team_event_matches')
+          .getTeamEventMatches(1678, '2026cc');
+
+      final qual = matches.firstWhere((m) => m.compLevel == 'qm');
+      expect(qual.key, '2026cc_qm16');
+      expect(qual.setNumber, 1);
+      expect(qual.matchNumber, 16);
+      expect(qual.videos, isEmpty);
+
+      final playoff = matches.firstWhere((m) => m.compLevel == 'sf');
+      expect(playoff.key, '2026cc_sf7m1');
+      expect(playoff.setNumber, 7);
+      expect(playoff.matchNumber, 1);
+      expect(playoff.isPlayed, isTrue);
+      expect(playoff.actualTime, isNotNull);
+      expect(playoff.videos.single.isYoutube, isTrue);
+      expect(playoff.videos.single.key, 'OSVfcFj_ufA');
+    });
+
     test('fetchTeamAvatar finds the avatar among other media', () async {
       // The media list mixes types, and the bytes live two levels down at
       // details.base64Image. The fixture deliberately puts a non-avatar

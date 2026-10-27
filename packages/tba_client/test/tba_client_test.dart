@@ -494,6 +494,32 @@ void main() {
     expect(await client.getEventsForYear(1999), isEmpty);
   });
 
+  test('getTeamEvents and getTeamEventMatches hit the team paths', () async {
+    final paths = <String>[];
+    final client = TbaClient(
+      config: InMemoryTbaConfig('test-key'),
+      httpClient: MockClient((request) async {
+        paths.add(request.url.path);
+        return http.Response('[]', 200);
+      }),
+    );
+
+    expect(await client.getTeamEvents(1678, 2026), isEmpty);
+    expect(await client.getTeamEventMatches(1678, '2026cc'), isEmpty);
+    expect(paths, <String>[
+      '/api/v3/team/frc1678/events/2026/simple',
+      '/api/v3/team/frc1678/event/2026cc/matches',
+    ]);
+  });
+
+  test('getTeamEvents returns empty list on 404', () async {
+    final client = TbaClient(
+      config: InMemoryTbaConfig('test-key'),
+      httpClient: MockClient((_) async => http.Response('', 404)),
+    );
+    expect(await client.getTeamEvents(99999, 2026), isEmpty);
+  });
+
   group('getEventsForYear with an events cache', () {
     final cachedList = utf8.encode(
       jsonEncode(<Map<String, dynamic>>[

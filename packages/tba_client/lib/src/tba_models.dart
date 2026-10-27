@@ -56,6 +56,7 @@ class TbaEvent {
     this.stateProv,
     this.startDate,
     this.endDate,
+    this.eventType,
   });
 
   factory TbaEvent.fromJson(Map<String, dynamic> json) {
@@ -71,6 +72,7 @@ class TbaEvent {
       stateProv: json['state_prov'] as String?,
       startDate: json['start_date'] as String?,
       endDate: json['end_date'] as String?,
+      eventType: (json['event_type'] as num?)?.toInt(),
     );
   }
 
@@ -82,6 +84,13 @@ class TbaEvent {
   final String? stateProv;
   final String? startDate;
   final String? endDate;
+
+  /// TBA's `event_type`: 0 regional, 1 district, 99 offseason, 100
+  /// preseason, and so on. Null when the payload omits it.
+  final int? eventType;
+
+  /// Whether this is a preseason event (`event_type` 100).
+  bool get isPreseason => eventType == 100;
 }
 
 /// One match from a TBA event schedule, with alliances resolved to plain
@@ -91,6 +100,7 @@ class TbaScheduleMatch {
     required this.key,
     required this.compLevel,
     required this.matchNumber,
+    this.setNumber = 1,
     required this.redTeams,
     required this.blueTeams,
     this.redScore,
@@ -159,6 +169,7 @@ class TbaScheduleMatch {
       key: (json['key'] as String?) ?? '',
       compLevel: (json['comp_level'] as String?) ?? 'qm',
       matchNumber: (json['match_number'] as num?)?.toInt() ?? 0,
+      setNumber: (json['set_number'] as num?)?.toInt() ?? 1,
       redTeams: extractTeams(alliances['red']),
       blueTeams: extractTeams(alliances['blue']),
       redScore: extractScore(alliances['red']),
@@ -178,6 +189,10 @@ class TbaScheduleMatch {
   final String key;
   final String compLevel;
   final int matchNumber;
+
+  /// The playoff set. Double-elimination playoffs number each match by its
+  /// set (`sf7m1` is set 7, match 1); always 1 for quals.
+  final int setNumber;
   final List<int> redTeams;
   final List<int> blueTeams;
 

@@ -28,8 +28,14 @@ devices.
 - **It needs iOS 26 / macOS 26 and hardware that supports Apple
   Intelligence.** Everywhere else, including Android, Windows, Linux and the
   web, availability answers `unsupportedOs` without touching the channel.
-- **One call is one session with no memory.** A caller holding a conversation
-  folds the earlier turns into the prompt itself.
+- **A call without `sessionId` has no memory.** Pass the same `sessionId` to
+  continue a conversation, and call `appleAiCloseSession` to end it.
+  `instructions` and `tools` apply when a session starts, so changing either
+  needs a new `sessionId`.
+- **Tools run in Dart.** Pass `tools` (each an `AppleAiTool` with a JSON
+  Schema for its arguments) and set one handler at startup with
+  `appleAiSetToolHandler`. Without a handler the model asks for tools nothing
+  answers.
 - **The model has its own guardrails.** A prompt it declines comes back as an
   `AppleAiException`, not as text, so treat a failure as "no answer" rather
   than an error worth showing as a broken screen.

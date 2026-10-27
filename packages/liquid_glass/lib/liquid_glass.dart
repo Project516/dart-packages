@@ -40,9 +40,10 @@ Future<String?> systemVersion() async {
 /// Two constraints come from this being a native platform view rather than
 /// something Flutter paints:
 ///
-/// * It is configured once, at creation. Rebuilding with a different
-///   [cornerRadius] or [tint] changes nothing. Pass a [Key] that varies with
-///   those values when they need to change, so the element is replaced.
+/// * Outside a group it is configured once, at creation. Rebuilding with a
+///   different [cornerRadius] or [tint] changes nothing. Pass a [Key] that
+///   varies with those values when they need to change, so the element is
+///   replaced.
 /// * It is expensive relative to a painted box. Use it for fixed chrome such
 ///   as a bar, a menu, or a floating panel, never inside a scrolling list,
 ///   where one platform view per row will drop frames.

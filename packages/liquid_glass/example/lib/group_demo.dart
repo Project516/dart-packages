@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:liquid_glass/liquid_glass.dart';
 
 /// The grouping question: do two glass surfaces in one container blend into
